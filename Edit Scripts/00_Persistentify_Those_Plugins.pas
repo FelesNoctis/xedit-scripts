@@ -11,7 +11,7 @@
 	See "USER SETTINGS" section below for configuration options.
 
 
-	 -= CREDITS =-
+	-= CREDITS =-
 
 	FelesNoctis---- https://www.nexusmods.com/users/336042
 					Framework, basic implementation of ACHR handling, logging and
@@ -24,6 +24,11 @@
 	Robertgk2017, JonathanOstrus, Zilav
 					Critique of filters and optimization suggestions, extensive
 					testing and suggestions, general moral boosting
+
+	
+	-= LICENSING =-
+	Mozilla Public License 2.0, as per TES5Edit
+	https://www.mozilla.org/en-US/MPL/2.0/
 }
 
 unit Persistentify_Those_Plugins;
