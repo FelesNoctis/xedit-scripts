@@ -10,7 +10,7 @@ A  general repository of scripts I've made myself, worked on with others, or wer
   
 Designed to be a more intelligent implementation than its predecessor, the "[ESMifyer](https://www.nexusmods.com/skyrimspecialedition/mods/40260)", which took a blanket approach to how it handled actor references (and only actor references). While that approach did keep affected actors functional, it also dramatically lessened the impact of what converting a plugin to a master is intended to accomplish.
 
-The "Persistentifyer" (name may change) not only targets all relevant reference types that may need to be updated (currently ACHR/REFR/PHZD), but also uses a number of filters to cut out every false positive it can concievably target without live human intervention. This list of filters continues to grow as we discover more edge cases in the various mods we test.
+The "Persistentifyer" (name may change) not only targets all relevant reference types that may need to be updated (currently ACHR/REFR/PHZD), but also uses a number of filters to cut out every false positive it can conceivably target without live human intervention. This list of filters continues to grow as we discover more edge cases in the various mods we test.
 
 ### Credits
 

@@ -4,7 +4,7 @@
 	
 	This script targets all relevant reference types that may need to be updated
 	(currently ACHR/REFR/PHZD), but also uses a number of filters to cut out every
-	false positive it can concievably target without live human intervention. This
+	false positive it can conceivably target without live human intervention. This
 	list of filters continues to grow as we discover more edge cases in the various
 	mods we test.
 
