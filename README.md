@@ -18,5 +18,5 @@ The "Persistentifyer" (name may change) not only targets all relevant reference 
 Framework, basic implementation of ACHR handling, logging and cleanup
 - **Eddoursul:** https://eddoursul.win/  
 Overhaul of functionality to include all important reference types, CK behavior research, and filter implementation
-- **Robertgk2017, JonathanOstrus, Zilav**
+- **Robertgk2017, JonathanOstrus, Zilav**  
 Critique of filters and optimization suggestions, extensive testing and suggestions, general moral boosting
