@@ -56,6 +56,7 @@ const
 	// Note: Disabling filters may disiqualify you from support assistance!
 	//       Each filter expects every filter above it to be "true" to function as intended.
 	//       Disabling them out of order can cause unexpected behavior and false positives.
+	//       If you do disable filters, be sure to only process a single plugin at a time.
 	skipAlreadyPersistent = true; // Reference already has a global persistence flag
 	processCKSpecialCases = true; // References we believe to be guaranteed CK flags
 	skipPersistentLocation = true; // Will cause false positives if disabled!
