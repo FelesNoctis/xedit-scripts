@@ -1,6 +1,6 @@
 {
 	Persistentify Those Plugins
-	v0.9.10
+	v0.10.0
 	
 	This script targets all relevant reference types that may need to be updated
 	(currently ACHR/REFR/PHZD), but also uses a number of filters to cut out every
@@ -38,17 +38,31 @@ unit Persistentify_Those_Plugins;
 // ---------------------------
 const
 	// MASTER SWITCH
-	dryRun = true;    // False: allow changes to plugin | True: print log only, no changes to plugin
+	dryRun = true; // False: allow changes to plugin
+	               // True: print log only, no changes to plugin
 
 	// ESMIFYING
-	ESMify = false;    // False: do not add ESM flag to plugin | True: add ESM flag to plugin if necessary
-	forceESMify = false;    // True: overrides ESMify setting, always adding ESM flag to plugin
+	ESMify = false; // False: do not add ESM flag to plugin
+	                // True: add ESM flag to plugin if persistence changes were made
+	forceESMify = false; // True: overrides ESMify setting, always adding ESM flag to plugin
 	
 	// LOGGING
-	extraLogging = false;    // Prints when a record was disqualified by an important filter.
-	detailedLogging = false;    // Simplified printout or full detail?
-	printAllCounted = false;    // VERY SLOW! Print any record that gets counted
+	// Note: Each "true" setting below will increase the total runtime of the script
+	detailedLogging = false; // Simplified record printout or full detail?
+	extraLogging = false; // Prints when a record was disqualified by an important filter.
+	printAllCounted = false; // VERY SLOW! Print any record that gets counted
 
+	// FILTERS (Expert)
+	// Note: Disabling filters may disiqualify you from support assistance!
+	//       Each filter expects every filter above it to be "true" to function as intended.
+	//       Disabling them out of order can cause unexpected behavior and false positives.
+	skipAlreadyPersistent = true; // Reference already has a global persistence flag
+	processCKSpecialCases = true; // References we believe to be guaranteed CK flags
+	skipPersistentLocation = true; // Will cause false positives if disabled!
+	skipStartsDead = true; // Referenced actor won't be moving anywhere anytime soon
+	skipSimpleActor = true; // Referenced actor is flagged simple, such as a rabbit or bird
+	skipUnRefNonUniques = true; // No important refs found and base actor isn't flagged unique
+	skipLowMobility = true; // Referenced actor's behavior packages are strictly local
 
 
 
@@ -160,7 +174,7 @@ begin
 	
 	if (not announcedPlugin)
 	then begin
-		AddMessage(sLineBreak + '* Plugin: ' + Name(plugin_currentPlugin));
+		AddMessage(sLineBreak + '*  Plugin: ' + Name(plugin_currentPlugin));
 		announcedPlugin := true;
 	end;
 
@@ -186,16 +200,19 @@ begin
 			AddMessage('!! CRITICAL: ' + Name(plugin_currentRecord));
 			AddMessage('!! CRITICAL: This is a NULL BASE error, which can cause CTDs!');
 			AddMessage('!! CRITICAL: Avoiding this error is essential for game stability!');
-			Inc(trappedCount);
+			Inc(criticalCount);
 			Exit;
 		end;
 
 		// Already persistent? Nothing to do here. Move along.
-		if (GetIsPersistent(plugin_currentRecord)) then
-			Exit;
+		if (skipAlreadyPersistent)
+		then begin
+			if	(GetIsPersistent(plugin_currentRecord)) then
+				Exit;
+		end;
 
 		// This is indeed a record we wish to check for processing, so +1
-		Inc(criticalCount);
+		Inc(recordsCounted);
 
 		// Depending on settings, we may want to log all records counted regardless of processing
 		if (printAllCounted)
@@ -212,35 +229,38 @@ begin
 		end;
 
 		// Special early handling for what we believe to be references that the CK will almost always flag
-		shared_baseID := FormID(plugin_baseRecord);
-		if	(IsWater(plugin_baseRecord))
-			or (Signature(plugin_baseRecord) = 'TXST')
-			or (shared_baseID = beth_PrisonMarker)
-			or (shared_baseID = beth_DivineMarker)
-			or (shared_baseID = beth_TempleMarker)
-			or (shared_baseID = beth_MapMarker)
-			or (shared_baseID = beth_HorseMarker)
-			or (shared_baseID = beth_MultiBoundMarker)
-			or (shared_baseID = beth_RoomMarker)
-			or (shared_baseID = beth_XMarkerHeading)
-			or (shared_baseID = beth_XMarker)
-			or (shared_baseID = beth_DragonMarker)
-			or (shared_baseID = beth_DragonMarkerCrashStrip)
+		if (processCKSpecialCases)
 		then begin
-			// Print the information of the record being processed
-			if (detailedLogging)
+			shared_baseID := FormID(plugin_baseRecord);
+			if	(IsWater(plugin_baseRecord))
+				or (Signature(plugin_baseRecord) = 'TXST')
+				or (shared_baseID = beth_PrisonMarker)
+				or (shared_baseID = beth_DivineMarker)
+				or (shared_baseID = beth_TempleMarker)
+				or (shared_baseID = beth_MapMarker)
+				or (shared_baseID = beth_HorseMarker)
+				or (shared_baseID = beth_MultiBoundMarker)
+				or (shared_baseID = beth_RoomMarker)
+				or (shared_baseID = beth_XMarkerHeading)
+				or (shared_baseID = beth_XMarker)
+				or (shared_baseID = beth_DragonMarker)
+				or (shared_baseID = beth_DragonMarkerCrashStrip)
 			then begin
-				AddMessage('>  Processing: ' + DisplayName(plugin_currentRecord) + ' - (' + Name(plugin_currentRecord) + ')');
-			end
-			else begin
-				AddMessage('>  Processing: ' + DisplayName(plugin_currentRecord) + ' - (' + ShortName(plugin_currentRecord) + ')');
+				// Print the information of the record being processed
+				if (detailedLogging)
+				then begin
+					AddMessage('>  Processing: ' + DisplayName(plugin_currentRecord) + ' - (' + Name(plugin_currentRecord) + ')');
+				end
+				else begin
+					AddMessage('>  Processing: ' + DisplayName(plugin_currentRecord) + ' - (' + ShortName(plugin_currentRecord) + ')');
+				end;
+				// This is a record we're actually processing, so +1
+				Inc(trappedCount);
+				// Is the "dry run" flag on or off?
+				if (not dryRun) then
+					SetIsPersistent(plugin_currentRecord, True);
+				Exit;
 			end;
-			// This is a record we're actually processing, so +1
-			Inc(trappedCount);
-			// Is the "dry run" flag on or off?
-			if (not dryRun) then
-				SetIsPersistent(plugin_currentRecord, True);
-			Exit;
 		end;
 
 		// This is the edge cases block, clearing out the occasional odd actor that doesn't need to be flagged, but will otherwise still trip the primary filter
@@ -258,115 +278,130 @@ begin
 			// Let's try to detect them. All of these cases target actors without any non-locational references.
 
             // This NPC uses Persistent Location, should work fine if the location was assigned correctly. Can be flagged explicitly with an option (many false positives!)
-            if (Assigned(ElementByPath(plugin_currentRecord, 'XLCN')))
+			if (skipPersistentLocation)
 			then begin
-			if (extraLogging)
+				if (Assigned(ElementByPath(plugin_currentRecord, 'XLCN')))
 				then begin
-					if (detailedLogging)
-					then begin
-						AddMessage('*  Skipping actor, assigned persistent location: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + Name(plugin_currentRecord) + ')');
-					end
-					else begin
-						AddMessage('*  Skipping actor, assigned persistent location: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + ShortName(plugin_currentRecord) + ')');
-					end;
-				end;
-                Exit;
-			end;
-
-			// Skip "Starts Dead"-flagged refs
-			if (GetElementNativeValues(plugin_currentRecord, 'Record Header\Record Flags\Starts Dead') <> 0)
-			then begin
-				if (extraLogging)
-				then begin
-					if (detailedLogging)
-					then begin
-						AddMessage('*  Skipping actor, "starts dead" reference: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + Name(plugin_currentRecord) + ')');
-					end
-					else begin
-						AddMessage('*  Skipping actor, "starts dead" reference: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + ShortName(plugin_currentRecord) + ')');
-					end;
-				end;
-    			Exit;
-			end;
-
-            // Skip chicken and such
-            if (GetElementNativeValues(plugin_baseRecord, 'ACBS\Flags\Simple Actor') <> 0)
-			then begin
-				if (extraLogging)
-				then begin
-					if (detailedLogging)
-					then begin
-						AddMessage('*  Skipping simple base actor: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + Name(plugin_currentRecord) + ')');
-					end
-					else begin
-						AddMessage('*  Skipping simple base actor: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + ShortName(plugin_currentRecord) + ')');
-					end;
-				end;
-                Exit;
-			end;
-            
-            // Skip non-persistent, non-unique actors
-            if (GetElementNativeValues(plugin_baseRecord, 'ACBS\Flags\Unique') = 0)
-			then begin
-				if (extraLogging)
-				then begin
-					if (detailedLogging)
-					then begin
-						AddMessage('*  Skipping non-persistent non-unique base actor: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + Name(plugin_currentRecord) + ')');
-					end
-					else begin
-						AddMessage('*  Skipping non-persistent non-unique base actor: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + ShortName(plugin_currentRecord) + ')');
-					end;
-				end;
-                Exit;
-			end;
-            
-			// Skip unique actors without/having extremely simple behavior packages (probably, flagged erroneously)
-			plugin_packageCount := ElementCount(ElementByPath(plugin_baseRecord, 'Packages'));
-			if (plugin_packageCount = 0)
-			then begin
-				Exit;
-			end
-			else if (plugin_packageCount = 1)
-			then begin
-				plugin_package := LinksTo(ElementByIndex(ElementByPath(plugin_baseRecord, 'Packages'), 0));
-				
-				if not Assigned(plugin_package) then
-					Exit;
-					
-				plugin_packageLoc := GetElementEditValues(ElementByIndex(ElementByPath(plugin_package, 'Package Data\Data Input Values'), 0), 'PLDT\Type');
-
-				// Skip actors having a single package revolving around their editor location or themselves
-				if (Pos(plugin_packageLoc, 'Near editor location|Near self') <> 0) then begin
 					if (extraLogging)
 					then begin
 						if (detailedLogging)
 						then begin
-							AddMessage('*  Skipping actor, near self/editor location: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + Name(plugin_currentRecord) + ')');
+							AddMessage('   Skipping actor, assigned persistent location: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + Name(plugin_currentRecord) + ')');
 						end
 						else begin
-							AddMessage('*  Skipping actor, near self/editor location: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + ShortName(plugin_currentRecord) + ')');
+							AddMessage('   Skipping actor, assigned persistent location: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + ShortName(plugin_currentRecord) + ')');
 						end;
 					end;
 					Exit;
 				end;
+			end;
 
-				// Skip actors having a single package that keeps them in the same cell
-				if (plugin_packageLoc = 'In cell') then begin
-					plugin_packageCell := LinksTo(ElementByPath(ElementByIndex(ElementByPath(plugin_package, 'Package Data\Data Input Values'), 0), 'PLDT\Cell'));
-					if Assigned(plugin_packageCell) then begin
-						if Equals(plugin_packageCell, LinksTo(ElementByPath(plugin_currentRecord, 'Cell'))) then begin
-							if (extraLogging)
+			// Skip "Starts Dead"-flagged refs
+			if (skipStartsDead)
+			then begin
+				if (GetElementNativeValues(plugin_currentRecord, 'Record Header\Record Flags\Starts Dead') <> 0)
+				then begin
+					if (extraLogging)
+					then begin
+						if (detailedLogging)
+						then begin
+							AddMessage('   Skipping actor, "starts dead" reference: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + Name(plugin_currentRecord) + ')');
+						end
+						else begin
+							AddMessage('   Skipping actor, "starts dead" reference: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + ShortName(plugin_currentRecord) + ')');
+						end;
+					end;
+					Exit;
+				end;
+			end;
+
+            // Skip chickens, rabbits, birds, etc
+			if (skipSimpleActor)
+			then begin
+				if (GetElementNativeValues(plugin_baseRecord, 'ACBS\Flags\Simple Actor') <> 0)
+				then begin
+					if (extraLogging)
+					then begin
+						if (detailedLogging)
+						then begin
+							AddMessage('   Skipping simple base actor: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + Name(plugin_currentRecord) + ')');
+						end
+						else begin
+							AddMessage('   Skipping simple base actor: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + ShortName(plugin_currentRecord) + ')');
+						end;
+					end;
+					Exit;
+				end;
+			end;
+            
+            // Skip unreferenced, non-persistent, non-unique actors
+			if (skipUnRefNonUniques)
+			then begin
+				if (GetElementNativeValues(plugin_baseRecord, 'ACBS\Flags\Unique') = 0)
+				then begin
+					if (extraLogging)
+					then begin
+						if (detailedLogging)
+						then begin
+							AddMessage('   Skipping unreferenced non-unique base actor: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + Name(plugin_currentRecord) + ')');
+						end
+						else begin
+							AddMessage('   Skipping unreferenced non-unique base actor: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + ShortName(plugin_currentRecord) + ')');
+						end;
+					end;
+					Exit;
+				end;
+			end;
+            
+			// Skip unique actors without/having extremely simple behavior packages (probably, flagged erroneously)
+			if (skipLowMobility)
+			then begin
+				plugin_packageCount := ElementCount(ElementByPath(plugin_baseRecord, 'Packages'));
+				if (plugin_packageCount = 0)
+				then begin
+					Exit;
+				end
+				else if (plugin_packageCount = 1)
+				then begin
+					plugin_package := LinksTo(ElementByIndex(ElementByPath(plugin_baseRecord, 'Packages'), 0));
+					
+					if not Assigned(plugin_package) then
+						Exit;
+						
+					plugin_packageLoc := GetElementEditValues(ElementByIndex(ElementByPath(plugin_package, 'Package Data\Data Input Values'), 0), 'PLDT\Type');
+
+					// Skip actors having a single package revolving around their editor location or themselves
+					if (Pos(plugin_packageLoc, 'Near editor location|Near self') <> 0) then begin
+						if (extraLogging)
+						then begin
+							if (detailedLogging)
 							then begin
-								if (detailedLogging)
+								AddMessage('   Skipping actor, near self/editor location: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + Name(plugin_currentRecord) + ')');
+							end
+							else begin
+								AddMessage('   Skipping actor, near self/editor location: ' + GetElementEditValues(plugin_currentRecord, 'NAME') + ' - (' + ShortName(plugin_currentRecord) + ')');
+							end;
+						end;
+						Exit;
+					end;
+
+					// Skip actors having a single package that keeps them in the same cell
+					if (plugin_packageLoc = 'In cell') then begin
+						plugin_packageCell := LinksTo(ElementByPath(ElementByIndex(ElementByPath(plugin_package, 'Package Data\Data Input Values'), 0), 'PLDT\Cell'));
+						if Assigned(plugin_packageCell) then begin
+							if Equals(plugin_packageCell, LinksTo(ElementByPath(plugin_currentRecord, 'Cell'))) then begin
+								if (extraLogging)
 								then begin
-									AddMessage('*  Skipping actor, staying in one cell: ' + DisplayName(plugin_currentRecord) + ' - (' + Name(plugin_currentRecord) + ')');
-								end
-								else begin
-									AddMessage('*  Skipping actor, staying in one cell: ' + DisplayName(plugin_currentRecord) + ' - (' + ShortName(plugin_currentRecord) + ')');
-								end;
-							end;							
-							Exit;
+									if (detailedLogging)
+									then begin
+										AddMessage('   Skipping actor, staying in one cell: ' + DisplayName(plugin_currentRecord) + ' - (' + Name(plugin_currentRecord) + ')');
+									end
+									else begin
+										AddMessage('   Skipping actor, staying in one cell: ' + DisplayName(plugin_currentRecord) + ' - (' + ShortName(plugin_currentRecord) + ')');
+									end;
+								end;							
+								Exit;
+							end;
 						end;
 					end;
 				end;
@@ -396,24 +431,24 @@ begin
 		// Check if there were any countable records in this plugin at all
 		if (RecordCount(plugin_currentPlugin) = 0)
 		then begin
-			AddMessage('* Plugin is Empty, skipping.');
+			AddMessage('*  Plugin is Empty, skipping.');
 		end
 
 		// Print this log summary if records were counted but none processed by SECTION 1
 		else if	(recordsCounted > 0)
 				and (trappedCount = 0)
 		then begin
-			AddMessage('   ' + IntToStr(recordsCounted) + ' records scanned. Detected no references needing persistence.');
+			AddMessage('*  ' + IntToStr(recordsCounted) + ' records scanned. Detected no references needing persistence.');
 		end
 
 		// Report back on what needed to be processed in SECTION 1
 		else begin
 			if (dryRun)
 			then begin
-				AddMessage('!  (Dry Run) ' + IntToStr(recordsCounted) + ' records scanned. Would have flagged ' + IntToStr(trappedCount) + ' reference(s) needing persistence.');
+				AddMessage('*  (Dry Run) ' + IntToStr(recordsCounted) + ' records scanned. Would have flagged ' + IntToStr(trappedCount) + ' reference(s) needing persistence.');
 			end
 			else begin
-				AddMessage('!  ' + IntToStr(recordsCounted) + ' records scanned. Flagged ' + IntToStr(trappedCount) + ' reference(s) needing persistence.');
+				AddMessage('*  ' + IntToStr(recordsCounted) + ' records scanned. Flagged ' + IntToStr(trappedCount) + ' reference(s) needing persistence.');
 			end;
 		end;
 
@@ -431,20 +466,20 @@ begin
 			then begin
 				if (not ESMify) or (trappedCount = 0)
 				then begin
-					AddMessage(Format('!  (Dry Run) %s would NOT be flagged as an ESM.', [Name(plugin_currentPlugin)]));
+					AddMessage(Format('*  (Dry Run) %s would NOT be flagged as an ESM.', [Name(plugin_currentPlugin)]));
 				end
 				else begin
-					AddMessage(Format('!  (Dry Run) %s would be flagged as an ESM.', [Name(plugin_currentPlugin)]));
+					AddMessage(Format('*  (Dry Run) %s would be flagged as an ESM.', [Name(plugin_currentPlugin)]));
 				end;
 			end
 			// Live Runs report the status of the setting, and set the flag if chosen
 			else begin
 				if (not ESMify) or (trappedCount = 0)
 				then begin
-					AddMessage(Format('!  %s does not need to be flagged as an ESM.', [Name(plugin_currentPlugin)]));
+					AddMessage(Format('*  %s does not need to be flagged as an ESM.', [Name(plugin_currentPlugin)]));
 				end
 				else begin
-					AddMessage(Format('!  %s is being flagged as an ESM.', [Name(plugin_currentPlugin)]));
+					AddMessage(Format('*  %s is being flagged as an ESM.', [Name(plugin_currentPlugin)]));
 					setIsESM(plugin_currentPlugin, true);
 				end;
 			end;
